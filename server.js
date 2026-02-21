@@ -7,6 +7,13 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
+app.use(
+  express.text({
+    type: "application/sdp",
+    limit: "2mb",
+  })
+);
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
