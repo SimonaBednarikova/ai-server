@@ -238,33 +238,40 @@ app.post("/realtime-session", async (req, res) => {
 app.post("/realtime-connect", async (req, res) => {
   try {
     const sdp = req.body;
-    const model = req.query.model; // ← pridaj toto
+    const model = req.query.model;
+
+    const authHeader = req.headers.authorization; // ✅ berieme z frontendu
 
     if (!model) {
       console.error("Missing model param");
       return res.status(400).send("Missing model parameter");
     }
 
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return res.status(400).send("Missing Authorization header");
+    }
+
     const r = await fetch(
-      `https://api.openai.com/v1/realtime?model=${model}`, // ← opravené
+      `https://api.openai.com/v1/realtime?model=${model}`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: authHeader,              // ✅ client_secret
           "Content-Type": "application/sdp",
         },
         body: sdp,
       }
     );
 
+    const text = await r.text();
+
     if (!r.ok) {
-      const text = await r.text();
       console.error("Realtime connect error:", text);
       return res.status(500).send(text);
     }
 
-    const answer = await r.text();
-    res.send(answer);
+    res.send(text);
 
   } catch (err) {
     console.error("❌ REALTIME CONNECT ERROR:", err);
