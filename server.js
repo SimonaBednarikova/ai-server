@@ -222,18 +222,28 @@ app.post("/realtime-session", async (req, res) => {
    REALTIME CONNECT (SDP PROXY)
 ========================================================= */
 
+
 app.post("/realtime-connect", async (req, res) => {
   try {
     const sdp = req.body;
+    const model = req.query.model; // ← pridaj toto
 
-    const r = await fetch("https://api.openai.com/v1/realtime", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/sdp",
-      },
-      body: sdp,
-    });
+    if (!model) {
+      console.error("Missing model param");
+      return res.status(400).send("Missing model parameter");
+    }
+
+    const r = await fetch(
+      `https://api.openai.com/v1/realtime?model=${model}`, // ← opravené
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/sdp",
+        },
+        body: sdp,
+      }
+    );
 
     if (!r.ok) {
       const text = await r.text();
