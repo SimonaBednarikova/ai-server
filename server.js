@@ -211,7 +211,37 @@ app.post("/realtime-session", async (req, res) => {
   }
 });
 
+/* =========================================================
+   REALTIME CONNECT (SDP PROXY)
+========================================================= */
 
+app.post("/realtime-connect", async (req, res) => {
+  try {
+    const sdp = req.body;
+
+    const r = await fetch("https://api.openai.com/v1/realtime", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/sdp",
+      },
+      body: sdp,
+    });
+
+    if (!r.ok) {
+      const text = await r.text();
+      console.error("Realtime connect error:", text);
+      return res.status(500).send(text);
+    }
+
+    const answer = await r.text();
+    res.send(answer);
+
+  } catch (err) {
+    console.error("❌ REALTIME CONNECT ERROR:", err);
+    res.status(500).send("Realtime connect failed");
+  }
+});
 /* =========================================================
    SAVE REALTIME TRANSCRIPT
 ========================================================= */
