@@ -190,6 +190,7 @@ app.post("/realtime-session", async (req, res) => {
     }
 
     const scenario = await loadScenarioFromDirectus(scenario_id);
+    console.log("Loaded scenario from Directus:", scenario);
 
     const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
