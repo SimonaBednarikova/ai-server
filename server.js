@@ -39,14 +39,25 @@ async function directusFetch(path, options = {}) {
 
   return res.json();
 }
-
+/* ========================================================= OLD
 async function loadScenarioFromDirectus(scenarioId) {
   const json = await directusFetch(
     `/items/scenarios/${scenarioId}?fields=id,name,system_prompt,voice`
   );
   return json.data;
 }
+========================================================= */
+async function loadScenarioFromDirectus(scenarioId) {
+  console.log("🔵 Loading scenario from Directus:", scenarioId);
 
+  const json = await directusFetch(
+    `/items/scenarios/${scenarioId}?fields=id,name,system_prompt,voice`
+  );
+
+  console.log("🔵 Directus scenario response:", json);
+
+  return json.data;
+}
 
 /* =========================================================
    FEEDBACK FORMATTER (MARKDOWN)
@@ -266,7 +277,11 @@ app.post("/realtime-connect", async (req, res) => {
 app.post("/save-realtime-transcript", async (req, res) => {
   try {
     const { scenario_id, user_id, messages } = req.body;
-
+    console.log("🟢 SAVE REQUEST RECEIVED:", {
+      scenario_id,
+      user_id,
+      messagesLength: messages?.length,
+    });
     if (!scenario_id || !user_id || !Array.isArray(messages)) {
       return res.status(400).json({
         error: "Missing scenario_id, user_id or messages",
