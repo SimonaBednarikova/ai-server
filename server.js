@@ -205,6 +205,11 @@ app.post("/realtime-session", async (req, res) => {
 
         turn_detection: {
           type: "server_vad",
+          threshold: 0.7,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 900,
+          create_response: true,
+          interrupt_response: true,
         },
         // aby sme mali STT (na logovanie / scoring neskôr) 
         input_audio_transcription: { 
