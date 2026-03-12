@@ -209,13 +209,6 @@ app.post("/realtime-session", async (req, res) => {
           create_response: true,
           interrupt_response: true,
         },
-        audio: {
-          input: {
-            noise_reduction: {
-              type: "near_field",
-            },
-          },
-        },
         // aby sme mali STT (na logovanie / scoring neskôr) 
         input_audio_transcription: { 
           model: "gpt-4o-mini-transcribe", 
