@@ -204,12 +204,17 @@ app.post("/realtime-session", async (req, res) => {
         instructions: scenario.system_prompt,
 
         turn_detection: {
-          type: "server_vad",
-          threshold: 0.7,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 900,
+          type: "semantic_vad",
+          eagerness: "low",
           create_response: true,
           interrupt_response: true,
+        },
+        audio: {
+          input: {
+            noise_reduction: {
+              type: "near_field",
+            },
+          },
         },
         // aby sme mali STT (na logovanie / scoring neskôr) 
         input_audio_transcription: { 
