@@ -40,7 +40,7 @@ function normalizeRealtimeVoice(rawVoice) {
     return normalized;
   }
 
-  return "alloy";
+  return "marin";
 }
 
 function buildScenarioInstructions(baseInstructions = "") {
@@ -65,7 +65,11 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Ak je vstup nejasny, useknuty alebo ruseny sumom, poziadaj o zopakovanie namiesto domyslania.",
     "- Ignoruj kratke neslovne zvuky ako notifikacie, tuknutia do klavesnice a bezny okolity hluk.",
     "- Odpovedaj v tom istom jazyku ako pouzivatel.",
-    "- Hovor plynulo a svizne, ale nie zbrklo.",
+    "- Hovor plynulo, prirodzene a ludsky, nie mechanicky ani roboticky.",
+    "- Pouzivaj jemnu a prirodzenu intonaciu, ako v beznej konverzacii.",
+    "- Vety vyslovuj pokojne a suvislo, s prirodzenymi kratkymi pauzami.",
+    "- Znenie hlasu ma byt teple, civilne a uveritelne.",
+    "- Hovor svizne, ale nie zbrklo.",
   ].join("\n");
 
   return [buildScenarioInstructions(baseInstructions), realtimeGuidance]
