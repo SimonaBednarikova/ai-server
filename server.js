@@ -18,6 +18,45 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const SUPPORTED_REALTIME_VOICES = new Set([
+  "alloy",
+  "ash",
+  "ballad",
+  "cedar",
+  "coral",
+  "echo",
+  "marin",
+  "sage",
+  "shimmer",
+  "verse",
+]);
+
+function normalizeRealtimeVoice(rawVoice) {
+  const normalized = String(rawVoice || "")
+    .trim()
+    .toLowerCase();
+
+  if (SUPPORTED_REALTIME_VOICES.has(normalized)) {
+    return normalized;
+  }
+
+  return "alloy";
+}
+
+function buildRealtimeInstructions(baseInstructions = "") {
+  const realtimeGuidance = [
+    "DOPLNKOVE PRAVIDLA PRE HLASOVY REALTIME ROZHOVOR:",
+    "- Reaguj rychlo po tom, ako pouzivatel dopovie.",
+    "- Odpovedaj prirodzene a skor strucne, ak scenar nevyzaduje detailnu odpoved.",
+    "- Ak je vstup nejasny, useknuty alebo ruseny sumom, poziadaj o zopakovanie namiesto domyslania.",
+    "- Ignoruj kratke neslovne zvuky ako notifikacie, tuknutia do klavesnice a bezny okolity hluk.",
+    "- Odpovedaj v tom istom jazyku ako pouzivatel.",
+    "- Hovor plynulo a svizne, ale nie zbrklo.",
+  ].join("\n");
+
+  return [baseInstructions.trim(), realtimeGuidance].filter(Boolean).join("\n\n");
+}
+
 /* =========================================================
    DIRECTUS HELPERS
 ========================================================= */
@@ -190,6 +229,7 @@ app.post("/realtime-session", async (req, res) => {
     }
 
     const scenario = await loadScenarioFromDirectus(scenario_id);
+    const voice = normalizeRealtimeVoice(scenario.voice);
     console.log("Loaded scenario from Directus:", scenario);
 
     const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -200,19 +240,24 @@ app.post("/realtime-session", async (req, res) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview",
-        voice: scenario.voice || "alloy",
-        instructions: scenario.system_prompt,
+        voice,
+        instructions: buildRealtimeInstructions(scenario.system_prompt),
 
         turn_detection: {
-          type: "semantic_vad",
-          eagerness: "low",
+          type: "server_vad",
+          threshold: 0.65,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 250,
           create_response: true,
           interrupt_response: true,
         },
         // aby sme mali STT (na logovanie / scoring neskôr) 
-        input_audio_transcription: { 
-          model: "gpt-4o-mini-transcribe", 
-          language: "sk", },
+        input_audio_transcription: {
+          model: "gpt-4o-mini-transcribe",
+          language: "sk",
+          prompt:
+            "Konverzacia je po slovensky. Uprednostni slovenske slova, mena a beznu hovorovu rec.",
+        },
       }),
     });
 
