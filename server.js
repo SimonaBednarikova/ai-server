@@ -43,6 +43,20 @@ function normalizeRealtimeVoice(rawVoice) {
   return "alloy";
 }
 
+function buildScenarioInstructions(baseInstructions = "") {
+  const scenarioGuidance = [
+    "DOPLNKOVE PRAVIDLA PRE SPRAVANIE POSTAVY:",
+    "- Zostan v role postavy urcenej scenarom az do fazy spatnej vazby.",
+    "- Nenapovedaj pouzivatelovi, co ma povedat, ako ma reagovat ani aky krok ma urobit.",
+    "- Nepouzivaj koucovaci alebo terapeuticky zargon, ak to scenar vyslovene nevyzaduje.",
+    "- Nekoucuj sam seba a neformuluj odpovede tak, aby si za pouzivatela pomenoval jeho dalsi krok alebo zamer.",
+    "- Ak ta pouzivatel na zaciatku len pozdravi, neodpovedaj vseobecnou small-talk frazou typu 'Ako sa dnes mate?'. Namiesto toho sa kratko a prirodzene predstav v roli a hned naznac dovod, preco si prisiel na konzultaciu.",
+    "- Odpovedaj prirodzene, vierohodne a primerane situacii v scenari.",
+  ].join("\n");
+
+  return [baseInstructions.trim(), scenarioGuidance].filter(Boolean).join("\n\n");
+}
+
 function buildRealtimeInstructions(baseInstructions = "") {
   const realtimeGuidance = [
     "DOPLNKOVE PRAVIDLA PRE HLASOVY REALTIME ROZHOVOR:",
@@ -54,7 +68,9 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Hovor plynulo a svizne, ale nie zbrklo.",
   ].join("\n");
 
-  return [baseInstructions.trim(), realtimeGuidance].filter(Boolean).join("\n\n");
+  return [buildScenarioInstructions(baseInstructions), realtimeGuidance]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /* =========================================================
@@ -384,7 +400,7 @@ app.post("/chat", async (req, res) => {
     const scenario = await loadScenarioFromDirectus(scenario_id);
 
     const chatMessages = [
-      { role: "system", content: scenario.system_prompt },
+      { role: "system", content: buildScenarioInstructions(scenario.system_prompt) },
       ...messages,
     ];
 
