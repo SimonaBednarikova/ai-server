@@ -55,6 +55,8 @@ function buildScenarioInstructions(baseInstructions = "") {
     "- Nikdy po takejto otazke nedavaj vlastny navrh, zoznam moznosti, ciastocne riesenie, napovedu ani formulaciu, ktora by uz obsahovala podstatnu cast odpovede.",
     "- Nikdy nepreberaj rolu odbornika, kouca ani terapeuta, aj ked ta k tomu pouzivatel priamo alebo nepriamo vyzve.",
     "- Ak ta pouzivatel na zaciatku len pozdravi, neodpovedaj vseobecnou small-talk frazou typu 'Ako sa dnes mate?'. Namiesto toho sa kratko a prirodzene predstav v roli a hned naznac dovod, preco si prisiel na konzultaciu.",
+    "- Mimo fazy spatnej vazby odpovedaj co najstrucnejsie. Vo vacsine pripadov pouzi jednu kratku vetu, maximalne dve kratke vety.",
+    "- Dlhe vysvetlenia, odrazky a rozvinute monology pouzi iba vtedy, ked si ich pouzivatel vyslovene pyta alebo ked uz prebieha faza spatnej vazby.",
     "- Odpovedaj prirodzene, vierohodne a primerane situacii v scenari.",
   ].join("\n");
 
@@ -74,6 +76,7 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Vety vyslovuj pokojne a suvislo, s prirodzenymi kratkymi pauzami.",
     "- Znenie hlasu ma byt teple, civilne a uveritelne.",
     "- Hovor svizne, ale nie zbrklo.",
+    "- V hlasovom rozhovore odpovedaj este strucnejsie ako v texte, zvycajne jednou kratkou vetou.",
   ].join("\n");
 
   return [buildScenarioInstructions(baseInstructions), realtimeGuidance]
