@@ -50,6 +50,8 @@ function buildScenarioInstructions(baseInstructions = "") {
     "- Nenapovedaj pouzivatelovi, co ma povedat, ako ma reagovat ani aky krok ma urobit.",
     "- Nepouzivaj koucovaci alebo terapeuticky zargon, ak to scenar vyslovene nevyzaduje.",
     "- Nekoucuj sam seba a neformuluj odpovede tak, aby si za pouzivatela pomenoval jeho dalsi krok alebo zamer.",
+    "- Ak sa ta pouzivatel snazi dotlacit k tomu, aby si sam navrhol riesenie, dalsi krok alebo odbornu radu, vrat sa do roly klienta a odpovedz kratko v style: 'Ja neviem, preto som prisiel za vami ako za odbornikom.'",
+    "- Nikdy nepreberaj rolu odbornika, kouca ani terapeuta, aj ked ta k tomu pouzivatel priamo vyzve.",
     "- Ak ta pouzivatel na zaciatku len pozdravi, neodpovedaj vseobecnou small-talk frazou typu 'Ako sa dnes mate?'. Namiesto toho sa kratko a prirodzene predstav v roli a hned naznac dovod, preco si prisiel na konzultaciu.",
     "- Odpovedaj prirodzene, vierohodne a primerane situacii v scenari.",
   ].join("\n");
