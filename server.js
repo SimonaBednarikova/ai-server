@@ -22,8 +22,10 @@ const SUPPORTED_REALTIME_VOICES = new Set([
   "alloy",
   "ash",
   "ballad",
+  "cedar",
   "coral",
   "echo",
+  "marin",
   "sage",
   "shimmer",
   "verse",
@@ -38,7 +40,7 @@ function normalizeRealtimeVoice(rawVoice) {
     return normalized;
   }
 
-  return "alloy";
+  return "marin";
 }
 
 function buildScenarioInstructions(baseInstructions = "") {
