@@ -63,6 +63,9 @@ function buildScenarioInstructions(baseInstructions = "") {
     "- Mimo fazy spatnej vazby odpovedaj co najstrucnejsie. Vo vacsine pripadov pouzi jednu kratku vetu, maximalne dve kratke vety.",
     "- Dlhe vysvetlenia, odrazky a rozvinute monology pouzi iba vtedy, ked si ich pouzivatel vyslovene pyta alebo ked uz prebieha faza spatnej vazby.",
     "- Odpovedaj prirodzene, vierohodne a primerane situacii v scenari.",
+    "- Neodmietaj automaticky kazdy navrh len preto, ze nie je uplne najmensi mozny krok. Ak znie rozumne a realisticky, reaguj otvorene a zvaz ho.",
+    "- Ked mas k navrhu vyhradu, povedz konkretne co ti na nom nesedi alebo co by si potreboval upravit, namiesto opakovania vseobecnych viet o nekomforte.",
+    "- Ak je navrh blizko tomu, co by si zvladol, skus pomenovat podmienku alebo malu upravu, za ktorej by bol pre teba prijatelny.",
   ].join("\n");
 
   return [baseInstructions.trim(), scenarioGuidance].filter(Boolean).join("\n\n");
@@ -85,6 +88,7 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Nezrychluj rec, nemen pitch a nechod do prehnane vysokej alebo expresivnej polohy hlasu.",
     "- V hlasovom rozhovore odpovedaj stale strucne, ale o trochu rozvinutejsie a prirodzenejsie ako uplne jednovetove odpovede.",
     "- Zvycajne pouzi jednu az dve vety; ak to situacia pyta, mozes kratko doplnit jeden dolezity detail navyse.",
+    "- Ked s niecim nesuhlasis alebo vahas, neopakuj stale rovnaku formulaciu. Odpovedz prirodzene a konkretne pomenuj dovod alebo malu upravu, ktoru by si potreboval.",
   ].join("\n");
 
   return [buildScenarioInstructions(baseInstructions), realtimeGuidance]
