@@ -83,7 +83,8 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Tempo reci drzi stabilne a pokojne.",
     "- Radsej hovor mierne pomalsie ako neprirodzene rychlo.",
     "- Nezrychluj rec, nemen pitch a nechod do prehnane vysokej alebo expresivnej polohy hlasu.",
-    "- V hlasovom rozhovore odpovedaj este strucnejsie ako v texte, zvycajne jednou kratkou vetou.",
+    "- V hlasovom rozhovore odpovedaj stale strucne, ale o trochu rozvinutejsie a prirodzenejsie ako uplne jednovetove odpovede.",
+    "- Zvycajne pouzi jednu az dve vety; ak to situacia pyta, mozes kratko doplnit jeden dolezity detail navyse.",
   ].join("\n");
 
   return [buildScenarioInstructions(baseInstructions), realtimeGuidance]
