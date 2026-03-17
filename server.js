@@ -18,6 +18,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const REALTIME_MODEL = "gpt-realtime-2025-08-28";
+
 const SUPPORTED_REALTIME_VOICES = new Set([
   "alloy",
   "ash",
@@ -78,7 +80,9 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Pouzivaj jemnu a prirodzenu intonaciu, ako v beznej konverzacii.",
     "- Vety vyslovuj pokojne a suvislo, s prirodzenymi kratkymi pauzami.",
     "- Znenie hlasu ma byt teple, civilne a uveritelne.",
-    "- Hovor svizne, ale nie zbrklo.",
+    "- Tempo reci drzi stabilne a pokojne.",
+    "- Radsej hovor mierne pomalsie ako neprirodzene rychlo.",
+    "- Nezrychluj rec, nemen pitch a nechod do prehnane vysokej alebo expresivnej polohy hlasu.",
     "- V hlasovom rozhovore odpovedaj este strucnejsie ako v texte, zvycajne jednou kratkou vetou.",
   ].join("\n");
 
@@ -269,8 +273,9 @@ app.post("/realtime-session", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-realtime-preview",
+        model: REALTIME_MODEL,
         voice,
+        speed: 1.0,
         instructions: buildRealtimeInstructions(scenario.system_prompt),
 
         turn_detection: {
