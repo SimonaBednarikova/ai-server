@@ -19,6 +19,20 @@ const openai = new OpenAI({
 });
 
 const REALTIME_MODEL = "gpt-realtime-2025-08-28";
+const FETCH_TIMEOUT_MS = 15000;
+const SCENARIO_CACHE_TTL_MS = 5 * 60 * 1000;
+const scenarioCache = new Map();
+const REALTIME_TURN_DETECTION = {
+  type: "server_vad",
+  // Menej agresivny profil pre mobil/web:
+  // - dlhsie cakanie po kratkej pauze, aby AI neskakala do reci
+  // - vacsi prefix padding, aby sa nezrezaval zaciatok vety
+  threshold: 0.6,
+  prefix_padding_ms: 450,
+  silence_duration_ms: 600,
+  create_response: true,
+  interrupt_response: true,
+};
 
 const SUPPORTED_REALTIME_VOICES = new Set([
   "alloy",
@@ -96,12 +110,36 @@ function buildRealtimeInstructions(baseInstructions = "") {
     .join("\n\n");
 }
 
+function createCachedScenarioEntry(data, source = "network") {
+  return {
+    data,
+    source,
+    fetchedAt: Date.now(),
+    expiresAt: Date.now() + SCENARIO_CACHE_TTL_MS,
+    promise: null,
+  };
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /* =========================================================
    DIRECTUS HELPERS
 ========================================================= */
 
 async function directusFetch(path, options = {}) {
-  const res = await fetch(`${process.env.DIRECTUS_URL}${path}`, {
+  const res = await fetchWithTimeout(`${process.env.DIRECTUS_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -125,16 +163,50 @@ async function loadScenarioFromDirectus(scenarioId) {
   return json.data;
 }
 ========================================================= */
-async function loadScenarioFromDirectus(scenarioId) {
-  
+async function loadScenarioFromDirectus(scenarioId, { forceRefresh = false } = {}) {
+  const cacheKey = String(scenarioId);
+  const cachedEntry = scenarioCache.get(cacheKey);
+  const now = Date.now();
 
-  const json = await directusFetch(
+  if (!forceRefresh && cachedEntry?.data && cachedEntry.expiresAt > now) {
+    return cachedEntry.data;
+  }
+
+  if (!forceRefresh && cachedEntry?.promise) {
+    return cachedEntry.promise;
+  }
+
+  const fetchPromise = directusFetch(
     `/items/scenarios/${scenarioId}?fields=id,name,system_prompt,voice`
-  );
+  )
+    .then((json) => {
+      if (!json?.data) {
+        throw new Error(`Scenario ${scenarioId} was not found`);
+      }
 
-  
+      const nextEntry = createCachedScenarioEntry(json.data, "network");
+      scenarioCache.set(cacheKey, nextEntry);
+      return nextEntry.data;
+    })
+    .catch((err) => {
+      if (cachedEntry?.data) {
+        scenarioCache.set(cacheKey, {
+          ...cachedEntry,
+          promise: null,
+        });
+      } else {
+        scenarioCache.delete(cacheKey);
+      }
+      throw err;
+    });
 
-  return json.data;
+  scenarioCache.set(cacheKey, {
+    ...(cachedEntry || {}),
+    promise: fetchPromise,
+    expiresAt: now + SCENARIO_CACHE_TTL_MS,
+  });
+
+  return fetchPromise;
 }
 
 /* =========================================================
@@ -259,6 +331,7 @@ async function saveTranscript({
 
 app.post("/realtime-session", async (req, res) => {
   try {
+    const startedAt = Date.now();
     const { scenario_id } = req.body;
 
     if (!scenario_id) {
@@ -269,9 +342,12 @@ app.post("/realtime-session", async (req, res) => {
 
     const scenario = await loadScenarioFromDirectus(scenario_id);
     const voice = normalizeRealtimeVoice(scenario.voice);
-    console.log("Loaded scenario from Directus:", scenario);
+    console.log("Loaded scenario for realtime session:", {
+      scenarioId: scenario.id,
+      voice,
+    });
 
-    const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
+    const r = await fetchWithTimeout("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -283,14 +359,7 @@ app.post("/realtime-session", async (req, res) => {
         speed: 1.0,
         instructions: buildRealtimeInstructions(scenario.system_prompt),
 
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.65,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 250,
-          create_response: true,
-          interrupt_response: true,
-        },
+        turn_detection: REALTIME_TURN_DETECTION,
         // aby sme mali STT (na logovanie / scoring neskôr) 
         input_audio_transcription: {
           model: "gpt-4o-mini-transcribe",
@@ -308,6 +377,10 @@ app.post("/realtime-session", async (req, res) => {
     }
 
     const session = await r.json();
+    console.log("Realtime session created", {
+      scenarioId: scenario.id,
+      durationMs: Date.now() - startedAt,
+    });
     res.json(session);
 
   } catch (err) {
@@ -325,6 +398,7 @@ app.post("/realtime-session", async (req, res) => {
 
 app.post("/realtime-connect", async (req, res) => {
   try {
+    const startedAt = Date.now();
     const sdp = req.body;
     const model = req.query.model;
 
@@ -340,7 +414,7 @@ app.post("/realtime-connect", async (req, res) => {
       return res.status(400).send("Missing Authorization header");
     }
 
-    const r = await fetch(
+    const r = await fetchWithTimeout(
       `https://api.openai.com/v1/realtime?model=${model}`,
       {
         method: "POST",
@@ -359,11 +433,52 @@ app.post("/realtime-connect", async (req, res) => {
       return res.status(500).send(text);
     }
 
+    console.log("Realtime connect completed", {
+      model,
+      durationMs: Date.now() - startedAt,
+    });
     res.send(text);
 
   } catch (err) {
     console.error("❌ REALTIME CONNECT ERROR:", err);
     res.status(500).send("Realtime connect failed");
+  }
+});
+
+app.get("/realtime-prewarm", async (req, res) => {
+  try {
+    const startedAt = Date.now();
+    const { scenario_id } = req.query;
+
+    if (!scenario_id) {
+      return res.status(400).json({ error: "Missing scenario_id" });
+    }
+
+    const cacheKey = String(scenario_id);
+    const cachedBefore = scenarioCache.get(cacheKey);
+    const hadWarmCache = Boolean(
+      cachedBefore?.data && cachedBefore.expiresAt > Date.now()
+    );
+
+    const scenario = await loadScenarioFromDirectus(scenario_id);
+    const cachedAfter = scenarioCache.get(cacheKey);
+
+    res.json({
+      status: "ok",
+      scenario_id: scenario.id,
+      durationMs: Date.now() - startedAt,
+      cache: {
+        wasWarm: hadWarmCache,
+        source: hadWarmCache ? "cache" : cachedAfter?.source || "network",
+        expiresAt: cachedAfter?.expiresAt || null,
+      },
+    });
+  } catch (err) {
+    console.error("Realtime prewarm error:", err);
+    res.status(500).json({
+      status: "error",
+      error: err.message ?? "Realtime prewarm failed",
+    });
   }
 });
 /* =========================================================
