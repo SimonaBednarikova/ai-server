@@ -24,14 +24,14 @@ const SCENARIO_CACHE_TTL_MS = 5 * 60 * 1000;
 const scenarioCache = new Map();
 const REALTIME_TURN_DETECTION = {
   type: "server_vad",
-  // Menej agresivny profil pre mobil/web:
-  // - dlhsie cakanie po kratkej pauze, aby AI neskakala do reci
-  // - vacsi prefix padding, aby sa nezrezaval zaciatok vety
-  threshold: 0.6,
-  prefix_padding_ms: 450,
-  silence_duration_ms: 600,
+  // Konzervativnejsi profil:
+  // - menej citlivy na echo z reproduktora a vlastny hlas asistenta
+  // - stale dostatocne plynuly pre bezny mobilny rozhovor
+  threshold: 0.72,
+  prefix_padding_ms: 320,
+  silence_duration_ms: 450,
   create_response: true,
-  interrupt_response: true,
+  interrupt_response: false,
 };
 
 const SUPPORTED_REALTIME_VOICES = new Set([
@@ -100,9 +100,11 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Tempo reci drzi stabilne a pokojne.",
     "- Radsej hovor mierne pomalsie ako neprirodzene rychlo.",
     "- Nezrychluj rec, nemen pitch a nechod do prehnane vysokej alebo expresivnej polohy hlasu.",
+    "- Ak hovoris po slovensky, vyslovuj slova co najprirodzenejsie po slovensky, nie s anglickou fonetikou ani s anglickym prizvukom.",
     "- V hlasovom rozhovore odpovedaj stale strucne, ale o trochu rozvinutejsie a prirodzenejsie ako uplne jednovetove odpovede.",
     "- Zvycajne pouzi jednu az dve vety; ak to situacia pyta, mozes kratko doplnit jeden dolezity detail navyse.",
     "- Ked s niecim nesuhlasis alebo vahas, neopakuj stale rovnaku formulaciu. Odpovedz prirodzene a konkretne pomenuj dovod alebo malu upravu, ktoru by si potreboval.",
+    "- Nikdy nerozvijaj rozhovor sam so sebou, neopakuj vlastne predchadzajuce vety a nereaguj na vlastny hlas ani zvuk z reproduktora ako na novy vstup od pouzivatela.",
   ].join("\n");
 
   return [buildScenarioInstructions(baseInstructions), realtimeGuidance]
