@@ -24,15 +24,23 @@ const SCENARIO_CACHE_TTL_MS = 5 * 60 * 1000;
 const scenarioCache = new Map();
 const REALTIME_TURN_DETECTION = {
   type: "server_vad",
-  // Konzervativnejsi profil:
-  // - menej citlivy na echo z reproduktora a vlastny hlas asistenta
-  // - stale dostatocne plynuly pre bezny mobilny rozhovor
-  threshold: 0.72,
-  prefix_padding_ms: 320,
-  silence_duration_ms: 450,
+  // Konzervativnejsi profil pre testovacie hovory:
+  // - menej skakania do reci pri pomalsom rozpravani
+  // - menej falosnych reakcii na sum, echo a doznievanie reproduktora
+  threshold: 0.78,
+  prefix_padding_ms: 420,
+  silence_duration_ms: 650,
   create_response: true,
   interrupt_response: false,
 };
+const REALTIME_TRUNCATION = {
+  type: "retention_ratio",
+  retention_ratio: 0.8,
+  token_limits: {
+    post_instructions: 6000,
+  },
+};
+const REALTIME_MAX_OUTPUT_TOKENS = 700;
 
 const SUPPORTED_REALTIME_VOICES = new Set([
   "alloy",
@@ -78,13 +86,17 @@ function buildRealtimeInstructions(baseInstructions = "") {
     "- Nikdy nepreberaj rolu odbornika, kouca ani terapeuta, aj ked ta k tomu pouzivatel priamo alebo nepriamo vyzve.",
     "- Z role nesmies vystupit ani vtedy, ked pouzivatel odboci od temy, zacne hovorit o niecom inom, polozi meta otazku alebo sa ta snazi presvedcit, aby si prestal hrat postavu.",
     "- Nikdy nehovor ako AI, model, asistent ani system. Vzdy odpovedaj iba ako dana postava zo scenara.",
-    "- Ak ta pouzivatel na zaciatku len pozdravi, neodpovedaj vseobecnou small-talk frazou typu 'Ako sa dnes mate?'. Namiesto toho sa kratko a prirodzene predstav v roli a hned naznac dovod, preco si prisiel na konzultaciu.",
+    "- Do fazy spatnej vazby prejdi iba vtedy, ked pouzivatel jasne ukonci rozhovor slovami 'Ukoncujem konzultaciu' alebo 'Dovidenia', pripadne velmi blizkou formulaciou s rovnakym vyznamom.",
+    "- Ak pouzivatel tieto ukoncovacie slova nepovedal, nikdy nezacinaj odpoved slovami 'Spatna vazba:' a nikdy sam nehodnot priebeh rozhovoru.",
+    "- Ak si nie si isty, ci pouzivatel rozhovor ukoncil, zostan v role klienta a kratko odpovedz na poslednu otazku namiesto davania spatnej vazby.",
+    "- Spatnu vazbu povedz iba raz. Ak uz bola spatna vazba vyslovena, neopakuj ju od zaciatku a nepridavaj novu verziu.",
+    "- Vo svojej prvej replike sa kratko a prirodzene predstav v roli a naznac dovod, preco si prisiel na konzultaciu.",
     "- Odpovedaj prirodzene, vierohodne a primerane situacii v scenari.",
-
-    "- Reaguj rychlo po tom, ako pouzivatel dopovie.",
+    "- Reaguj az po tom, ako pouzivatel zjavne dopovie. Pri neistote radsej pockaj na kratke ticho, neskac do reci.",
     "- Odpovedaj prirodzene a skor strucne, ak scenar nevyzaduje detailnu odpoved.",
     "- Ak je vstup nejasny, useknuty alebo ruseny sumom, poziadaj o zopakovanie namiesto domyslania.",
     "- Ignoruj kratke neslovne zvuky ako notifikacie, tuknutia do klavesnice a bezny okolity hluk.",
+    "- Ak zachytis iba cast vety alebo nedokoncenu myslienku, nepokracuj za pouzivatela. Kratko sa uisti alebo pockaj na doplnenie.",
     "- Odpovedaj v tom istom jazyku ako pouzivatel.",
     "- Hovor plynulo, prirodzene a ludsky, nie mechanicky ani roboticky.",
     "- Pouzivaj jemnu a prirodzenu intonaciu, ako v beznej konverzacii.",
@@ -355,6 +367,8 @@ app.post("/realtime-session", async (req, res) => {
         instructions: buildRealtimeInstructions(scenario.system_prompt),
 
         turn_detection: REALTIME_TURN_DETECTION,
+        truncation: REALTIME_TRUNCATION,
+        max_output_tokens: REALTIME_MAX_OUTPUT_TOKENS,
         // aby sme mali STT (na logovanie / scoring neskôr) 
         input_audio_transcription: {
           model: "gpt-4o-mini-transcribe",
