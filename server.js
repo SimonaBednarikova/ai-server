@@ -40,7 +40,6 @@ const REALTIME_TRUNCATION = {
     post_instructions: 6000,
   },
 };
-const REALTIME_MAX_OUTPUT_TOKENS = 700;
 
 const SUPPORTED_REALTIME_VOICES = new Set([
   "alloy",
@@ -368,7 +367,6 @@ app.post("/realtime-session", async (req, res) => {
 
         turn_detection: REALTIME_TURN_DETECTION,
         truncation: REALTIME_TRUNCATION,
-        max_output_tokens: REALTIME_MAX_OUTPUT_TOKENS,
         // aby sme mali STT (na logovanie / scoring neskôr) 
         input_audio_transcription: {
           model: "gpt-4o-mini-transcribe",
