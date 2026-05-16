@@ -116,6 +116,30 @@ function buildRealtimeInstructions(baseInstructions = "") {
     .join("\n\n");
 }
 
+function buildRealtimeSessionConfig(scenario, voice) {
+  return {
+    type: "realtime",
+    model: REALTIME_MODEL,
+    instructions: buildRealtimeInstructions(scenario.system_prompt),
+    truncation: REALTIME_TRUNCATION,
+    audio: {
+      input: {
+        turn_detection: REALTIME_TURN_DETECTION,
+        transcription: {
+          model: "gpt-4o-mini-transcribe",
+          language: "sk",
+          prompt:
+            "Konverzacia je po slovensky. Uprednostni slovenske slova, mena a beznu hovorovu rec.",
+        },
+      },
+      output: {
+        voice,
+        speed: 1.0,
+      },
+    },
+  };
+}
+
 function createCachedScenarioEntry(data, source = "network") {
   return {
     data,
@@ -353,27 +377,19 @@ app.post("/realtime-session", async (req, res) => {
       voice,
     });
 
-    const r = await fetchWithTimeout("https://api.openai.com/v1/realtime/sessions", {
+    const sessionConfig = buildRealtimeSessionConfig(scenario, voice);
+    const r = await fetchWithTimeout("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: REALTIME_MODEL,
-        voice,
-        speed: 1.0,
-        instructions: buildRealtimeInstructions(scenario.system_prompt),
-
-        turn_detection: REALTIME_TURN_DETECTION,
-        truncation: REALTIME_TRUNCATION,
-        // aby sme mali STT (na logovanie / scoring neskôr) 
-        input_audio_transcription: {
-          model: "gpt-4o-mini-transcribe",
-          language: "sk",
-          prompt:
-            "Konverzacia je po slovensky. Uprednostni slovenske slova, mena a beznu hovorovu rec.",
+        expires_after: {
+          anchor: "created_at",
+          seconds: 600,
         },
+        session: sessionConfig,
       }),
     });
 
@@ -383,7 +399,20 @@ app.post("/realtime-session", async (req, res) => {
       return res.status(500).json({ error: text });
     }
 
-    const session = await r.json();
+    const clientSecret = await r.json();
+    const session = {
+      ...sessionConfig,
+      ...(clientSecret.session || {}),
+      model: clientSecret.session?.model || sessionConfig.model,
+      client_secret:
+        clientSecret.session?.client_secret ||
+        (clientSecret.value
+          ? {
+              value: clientSecret.value,
+              expires_at: clientSecret.expires_at,
+            }
+          : undefined),
+    };
     console.log("Realtime session created", {
       scenarioId: scenario.id,
       durationMs: Date.now() - startedAt,
@@ -407,14 +436,9 @@ app.post("/realtime-connect", async (req, res) => {
   try {
     const startedAt = Date.now();
     const sdp = req.body;
-    const model = req.query.model;
+    const model = req.query.model || REALTIME_MODEL;
 
     const authHeader = req.headers.authorization; // ✅ berieme z frontendu
-
-    if (!model) {
-      console.error("Missing model param");
-      return res.status(400).send("Missing model parameter");
-    }
 
     if (!authHeader) {
       console.error("Missing Authorization header");
@@ -422,11 +446,11 @@ app.post("/realtime-connect", async (req, res) => {
     }
 
     const r = await fetchWithTimeout(
-      `https://api.openai.com/v1/realtime?model=${model}`,
+      "https://api.openai.com/v1/realtime/calls",
       {
         method: "POST",
         headers: {
-          Authorization: authHeader,              // ✅ client_secret
+          Authorization: authHeader,              // client_secret z /realtime/client_secrets
           "Content-Type": "application/sdp",
         },
         body: sdp,
