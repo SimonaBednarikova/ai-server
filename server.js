@@ -27,9 +27,9 @@ const REALTIME_TURN_DETECTION = {
   // Konzervativnejsi profil pre testovacie hovory:
   // - menej skakania do reci pri pomalsom rozpravani
   // - menej falosnych reakcii na sum, echo a doznievanie reproduktora
-  threshold: 0.78,
-  prefix_padding_ms: 420,
-  silence_duration_ms: 650,
+  threshold: 0.88,
+  prefix_padding_ms: 320,
+  silence_duration_ms: 950,
   create_response: true,
   interrupt_response: false,
 };
@@ -124,6 +124,9 @@ function buildRealtimeSessionConfig(scenario, voice) {
     truncation: REALTIME_TRUNCATION,
     audio: {
       input: {
+        noise_reduction: {
+          type: "far_field",
+        },
         turn_detection: REALTIME_TURN_DETECTION,
         transcription: {
           model: "gpt-4o-mini-transcribe",
