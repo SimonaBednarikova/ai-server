@@ -117,10 +117,22 @@ function buildRealtimeInstructions(baseInstructions = "") {
 }
 
 function buildRealtimeSessionConfig(scenario, voice) {
+  const instructions = buildRealtimeInstructions(scenario.system_prompt);
+
+  console.log(
+    [
+      "===== REALTIME PROMPT START =====",
+      `scenario_id: ${scenario.id}`,
+      `scenario_name: ${scenario.name}`,
+      instructions,
+      "===== REALTIME PROMPT END =====",
+    ].join("\n")
+  );
+
   return {
     type: "realtime",
     model: REALTIME_MODEL,
-    instructions: buildRealtimeInstructions(scenario.system_prompt),
+    instructions,
     truncation: REALTIME_TRUNCATION,
     audio: {
       input: {
