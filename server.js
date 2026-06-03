@@ -22,6 +22,7 @@ const REALTIME_MODEL = "gpt-realtime-2025-08-28";
 const FETCH_TIMEOUT_MS = 15000;
 const SCENARIO_CACHE_TTL_MS = 5 * 60 * 1000;
 const scenarioCache = new Map();
+const MODULE_ONE_SCENARIO_IDS = new Set([30, 2, 23, 24, 25, 26, 27, 28]);
 const REALTIME_TURN_DETECTION = {
   type: "server_vad",
   // Konzervativnejsi profil pre testovacie hovory:
@@ -117,7 +118,9 @@ function buildRealtimeInstructions(baseInstructions = "") {
 }
 
 function buildRealtimeSessionConfig(scenario, voice) {
-  const instructions = buildRealtimeInstructions(scenario.system_prompt);
+  const instructions = MODULE_ONE_SCENARIO_IDS.has(Number(scenario.id))
+    ? scenario.system_prompt.trim()
+    : buildRealtimeInstructions(scenario.system_prompt);
 
   console.log(
     [
